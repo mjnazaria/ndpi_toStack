@@ -1,0 +1,14 @@
+
+numpy==1.21.6
+opencv-python==4.6.0.66
+pickle5==0.0.12
+Pillow==7.0.0
+scikit-image==0.16.2
+scikit-learn==1.0.2
+segment-anything==1.0
+tifffile==2021.11.2
+-f https://download.pytorch.org/whl/cu116
+torch==1.13.0+cu116 
+-f https://download.pytorch.org/whl/cu116
+torchvision==0.14.0+cu116 
+
