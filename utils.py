@@ -36,7 +36,7 @@ class ImageDisp(tk.Frame):
         self.btn_rem = tk.Button(self.frame_obj, text="Remove Objects", command=self.rem_object)
         self.btn_comb = tk.Button(self.frame_obj, text="Combine Objects", command=self.com_object)
         self.btn_sort = tk.Button(self.frame_obj, text="Sort Objects", command=self.sort_object)
-        self.btn_flip = tk.Button(self.frame_obj, text="Flip Objects")               
+        self.btn_flip = tk.Button(self.frame_obj, text="Flip Objects", command=self.flip_object)               
         self.btn_stack = tk.Button(self, text="Convert to Stack", command=self.to_stack)        
         
         self.canv.grid(row=0, column=0, columnspan=3)
@@ -58,8 +58,8 @@ class ImageDisp(tk.Frame):
     
     def load_image(self):                   
         self.file_path = tk.filedialog.askopenfilename(title = "select image",
-                                                       filetypes = (("ndpi images", "*.ndpi"),
-                                                                    ("tiff images", "*.tif"),
+                                                       filetypes = (("tiff images", "*.tif"),
+                                                                    ("ndpi images", "*.ndpi"),
                                                                     ("jpeg images", "*.jpg")))
         GLOBAL_VARS['img'] = Image(tiff.imread(self.file_path), (ImageDisp.canv_width, ImageDisp.canv_height))
         self.canv.create_image(ImageDisp.canv_width/2,
@@ -116,15 +116,20 @@ class ImageDisp(tk.Frame):
         contours, contours_centroid = GLOBAL_VARS['img'].sort_objects()
         for con_group in contours:
             for con in con_group:
-                self.canv.create_line(con.flatten().tolist(), width=2, fill='green')
-            
+                self.canv.create_line(con.flatten().tolist(), width=2, fill='green')            
         self.ents = multiEntry(self.canv, len(contours), bd=1, width=5)
         self.ents.place(contours_centroid[:,1], contours_centroid[:,0])
         self.ents.insert(0, np.arange(len(contours)))
         
+    def flip_object(self):
+        self.ents.place_forget()
+        self.cbs = multiCheckbutton(self.canv, GLOBAL_VARS['img'].slice_no, bg='#D3C2F7', bd=0)
+        self.cbs.place(GLOBAL_VARS['img'].contours_centroid[:,1]-5, GLOBAL_VARS['img'].contours_centroid[:,0]-5)
+
     def to_stack(self):        
         idx_slices = np.argsort(self.ents.get())
-        stack = GLOBAL_VARS['img'].convert_to_stack(idx_slices)
+        flips = self.cbs.get_state()
+        stack = GLOBAL_VARS['img'].convert_to_stack(idx_slices, flips)
         stack_path = self.file_path.replace('.tif', '_stack.tif')       
         tiff.imwrite(stack_path, stack)
         
@@ -139,14 +144,38 @@ class multiEntry:
         for (ent, px, py) in zip(self.ents, posx, posy):
             ent.place(x=px, y=py)
             
+    def place_forget(self):
+        for ent in self.ents:
+            ent.place_forget()
+            
     def insert(self, index, numbers):
         for (ent, num) in zip(self.ents, numbers):
-            ent.insert(index, str(num))     
+            ent.insert(index, str(num))   
             
     def get(self):
         numbers = [int(ent.get()) for ent in self.ents]
         return numbers
 
+
+class multiCheckbutton:
+    def __init__(self, master, no, **kwargs):
+        self.no = no
+        self.cbs = []
+        self.state = []
+        for i in range(no):
+            self.state.append(tk.IntVar(0))
+            self.cbs.append(tk.Checkbutton(master, variable=self.state[i], **kwargs))
+            
+    def place(self, posx, posy):
+        for (cb, px, py) in zip(self.cbs, posx, posy):
+            cb.place(x=px, y=py)
+    
+    def get_state(self):
+        return [var.get() for var in self.state]
+    
+    def place_forget(self):
+        for cb in self.cbs:
+            cb.place_forget()
 
 
 

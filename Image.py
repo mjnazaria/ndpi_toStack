@@ -15,7 +15,7 @@ class Image:
         self.groups_cent = []
         self.resize(res_shape[0], res_shape[1])
 
-        
+
     def resize(self, width, height):
         self.img_d = cv2.resize(self.img,
                                 (width, height), 
@@ -123,6 +123,19 @@ class Image:
                 idx_large = np.argmax(np.array([len(x) for x in con]))
                 contours_group.append(con[idx_large])
                 
+        return contours_group
+
+    
+    def sort_objects(self):
+        """
+        Finalize the combining request. Find contours centroid coordinates. Sort them left-right top-bottom.
+
+        Returns
+        -------
+        contours: np.ndarray
+        contour centroid coordinates: np.ndarray
+
+        """         
         self.contours, _ = contours_fromMask(self.masks)
         self.contours = list(filter(lambda x: len(x)>self.min_contour_len, self.contours))        
         # combine requested contours
@@ -138,20 +151,7 @@ class Image:
         for i, con in enumerate(self.contours): # put eveything in a nested list
             if not isinstance(con, list):
                 self.contours[i] = [con]
-                
-        return contours_group
-
-    
-    def sort_objects(self):
-        """
-        Find contours centroid coordinates. Sort them left-right top-bottom.
-
-        Returns
-        -------
-        contours: np.ndarray
-        contour centroid coordinates: np.ndarray
-
-        """                                   
+                  
         self.contours = np.array(self.contours, dtype=object)                     
         self.slice_no = len(self.contours)  
         self.contours_centroid = np.zeros((self.slice_no,2), dtype=int)
@@ -179,7 +179,7 @@ class Image:
         
 
 
-    def convert_to_stack(self, idx_slices):
+    def convert_to_stack(self, idx_slices, flips):
         """
         Convert image to stack of brain sections based on contours.
 
@@ -220,6 +220,8 @@ class Image:
             self.img_stack[:,:,:,i] = self.bg_val[i]
         for i in range(self.slice_no):
             self.img_stack[i][masks_arg_stack[i]] = self.img_d[tuple(masks_arg[i].T)]
+            if flips[i]:
+                self.img_stack[i] = np.flip(self.img_stack[i], axis=1)
         
         return self.img_stack
 
